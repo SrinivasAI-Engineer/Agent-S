@@ -84,6 +84,10 @@ class AgentState(TypedDict, total=False):
     publish_status: PublishStatus
     hitl_actions: HitlActions
 
+    # Which connection to use when publishing (set by HITL; None = use default)
+    twitter_connection_id: Optional[int]
+    linkedin_connection_id: Optional[int]
+
     # internal bookkeeping
     created_at: str
     updated_at: str

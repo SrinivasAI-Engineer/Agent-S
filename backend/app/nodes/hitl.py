@@ -29,10 +29,12 @@ def apply_hitl_actions(state: AgentState, actions: dict[str, Any]) -> AgentState
         "linkedin_connection_id": actions.get("linkedin_connection_id"),
         "acted_at": now_iso(),
     }
-    if actions.get("twitter_connection_id") is not None:
-        state["twitter_connection_id"] = actions["twitter_connection_id"]
-    if actions.get("linkedin_connection_id") is not None:
-        state["linkedin_connection_id"] = actions["linkedin_connection_id"]
+    # Always set connection IDs from actions so the selected account is used when publishing.
+    # None = use default connection; explicit id = use that account.
+    if "twitter_connection_id" in actions:
+        state["twitter_connection_id"] = actions["twitter_connection_id"] if actions.get("twitter_connection_id") is not None else None
+    if "linkedin_connection_id" in actions:
+        state["linkedin_connection_id"] = actions["linkedin_connection_id"] if actions.get("linkedin_connection_id") is not None else None
     if actions.get("image_base64"):
         state.setdefault("image_metadata", {})["image_base64"] = actions["image_base64"]
 
