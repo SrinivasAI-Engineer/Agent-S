@@ -1,0 +1,49 @@
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+venvASS/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Backend – SQLite and checkpoints
+*.db
+*.db-shm
+*.db-wal
+
+# Python tooling
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+*.cover
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/node_modules/
+*.tsbuildinfo
+
+# Logs and OS
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE (optional – remove if you want to commit shared settings)
+.idea/
+*.swp
+*.swo
+*~
