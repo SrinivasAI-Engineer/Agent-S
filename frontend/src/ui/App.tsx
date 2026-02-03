@@ -165,7 +165,16 @@ function MainApp({ token }: { token: string }) {
   const [linkedinConnectionId, setLinkedinConnectionId] = useState<number | null>(null);
   const [editingLabelId, setEditingLabelId] = useState<number | null>(null);
   const [editingLabelValue, setEditingLabelValue] = useState("");
+  const [connectionMenuOpenId, setConnectionMenuOpenId] = useState<number | null>(null);
   const [showDebug, setShowDebug] = useState(false);
+
+  // Close connection menu when clicking outside
+  useEffect(() => {
+    if (connectionMenuOpenId === null) return;
+    const close = () => setConnectionMenuOpenId(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [connectionMenuOpenId]);
 
   const selectedState = selected?.state || {};
   const img = (selectedState.image_metadata as Record<string, unknown>) || {};
@@ -385,7 +394,7 @@ function MainApp({ token }: { token: string }) {
             <img src={ideyalabsLogo} alt="ideyalabs" />
             <div>
               <div style={{ fontSize: 0 }}>ideyalabs</div>
-              <div className="headerTagline">Thoughts - Ideas - Products</div>
+              <div className="headerTagline">Generate - Review - Post</div>
             </div>
           </a>
           <nav className="headerNav">
@@ -443,11 +452,25 @@ function MainApp({ token }: { token: string }) {
                         </>
                       ) : (
                         <>
-                          <span className="muted">{c.label || c.display_name || c.account_id}</span>
+                          <span className="muted" style={{ flex: 1, minWidth: 0 }}>{c.label || c.display_name || c.account_id}</span>
                           {c.is_default && <span style={{ fontSize: 11, color: "var(--corporate-orange)" }}>default</span>}
-                          <button type="button" className="secondary" style={{ fontSize: 12 }} onClick={() => { setEditingLabelId(c.id); setEditingLabelValue(c.label); }}>Edit label</button>
-                          {!c.is_default && <button type="button" className="secondary" style={{ fontSize: 12 }} onClick={() => setDefaultConnection(c.id)}>Set default</button>}
-                          <button type="button" className="secondary danger" style={{ fontSize: 12 }} onClick={() => deleteConnection(c.id)}>Delete</button>
+                          <div className="connectionMenuWrap" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              className="connectionMenuTrigger"
+                              aria-label="Connection options"
+                              onClick={(e) => { e.stopPropagation(); setConnectionMenuOpenId((prev) => (prev === c.id ? null : c.id)); }}
+                            >
+                              <span aria-hidden>⋮</span>
+                            </button>
+                            {connectionMenuOpenId === c.id ? (
+                              <div className="connectionMenuDropdown">
+                                <button type="button" className="connectionMenuItem" onClick={() => { setEditingLabelId(c.id); setEditingLabelValue(c.label); setConnectionMenuOpenId(null); }}>Edit label</button>
+                                {!c.is_default && <button type="button" className="connectionMenuItem" onClick={() => { setDefaultConnection(c.id); setConnectionMenuOpenId(null); }}>Set default</button>}
+                                <button type="button" className="connectionMenuItem connectionMenuItemDanger" onClick={() => { deleteConnection(c.id); setConnectionMenuOpenId(null); }}>Delete</button>
+                              </div>
+                            ) : null}
+                          </div>
                         </>
                       )}
                     </div>
@@ -456,8 +479,8 @@ function MainApp({ token }: { token: string }) {
               </ul>
             )}
             <div style={{ display: "flex", gap: 8 }}>
-              <button type="button" className="secondary" onClick={() => window.open(`${API_BASE}/v1/oauth/twitter/start?user_id=${encodeURIComponent(userId)}`, "_blank")}>Add Twitter</button>
-              <button type="button" className="secondary" onClick={() => window.open(`${API_BASE}/v1/oauth/linkedin/start?user_id=${encodeURIComponent(userId)}`, "_blank")}>Add LinkedIn</button>
+              <button type="button" className="secondary" onClick={() => window.location.href = `${API_BASE}/v1/oauth/twitter/start?user_id=${encodeURIComponent(userId)}`}>Add Twitter</button>
+              <button type="button" className="secondary" onClick={() => window.location.href = `${API_BASE}/v1/oauth/linkedin/start?user_id=${encodeURIComponent(userId)}`}>Add LinkedIn</button>
             </div>
           </div>
 
@@ -519,8 +542,8 @@ function MainApp({ token }: { token: string }) {
                   <div className="card cardWarning" style={{ marginBottom: 14 }}>
                     <div className="cardTitle" style={{ marginBottom: 6 }}>Re-auth required</div>
                     <div style={{ display: "flex", gap: 10 }}>
-                      <button type="button" className="secondary" onClick={() => window.open(`${API_BASE}/v1/oauth/twitter/start?user_id=${encodeURIComponent(userId)}`, "_blank")}>Connect Twitter</button>
-                      <button type="button" className="secondary" onClick={() => window.open(`${API_BASE}/v1/oauth/linkedin/start?user_id=${encodeURIComponent(userId)}`, "_blank")}>Connect LinkedIn</button>
+                      <button type="button" className="secondary" onClick={() => window.location.href = `${API_BASE}/v1/oauth/twitter/start?user_id=${encodeURIComponent(userId)}`}>Connect Twitter</button>
+                      <button type="button" className="secondary" onClick={() => window.location.href = `${API_BASE}/v1/oauth/linkedin/start?user_id=${encodeURIComponent(userId)}`}>Connect LinkedIn</button>
                     </div>
                   </div>
                 ) : null}
