@@ -251,11 +251,12 @@ def _get_tools_impl():
 
 
 def run() -> None:
-    """Run the MCP server (Streamable HTTP)."""
+    """Run the MCP server (Streamable HTTP) on host 0.0.0.0, port 8001."""
     try:
         from mcp.server.fastmcp import FastMCP
+        import uvicorn
     except ImportError:
-        print("Install MCP SDK: pip install mcp", file=sys.stderr)
+        print("Install MCP SDK and uvicorn: pip install mcp uvicorn", file=sys.stderr)
         sys.exit(1)
 
     mcp = FastMCP("AgentSocialS Publishing", json_response=True)
@@ -268,10 +269,15 @@ def run() -> None:
         user_id: str,
         connection_id: int | None = None,
         media_id: str | None = None,
-        metadata: str | None = None,
+        metadata: str | dict | None = None,
     ) -> str:
         """Publish a post to twitter or linkedin. Returns JSON: { post_id, status [, error ] }."""
-        meta = json.loads(metadata) if metadata else {}
+        if metadata is None:
+            meta = {}
+        elif isinstance(metadata, dict):
+            meta = metadata
+        else:
+            meta = json.loads(metadata) if metadata else {}
         result = await publish_post(platform, text, user_id, connection_id, media_id, meta)
         return json.dumps(result)
 
@@ -287,7 +293,9 @@ def run() -> None:
         result = await upload_media(platform, media_base64, user_id, connection_id, image_url)
         return json.dumps(result)
 
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=8001)
+    # MCP SDK FastMCP.run() does not accept host/port; use streamable_http_app + uvicorn
+    app = mcp.streamable_http_app()
+    uvicorn.run(app, host="0.0.0.0", port=8001)
 
 
 if __name__ == "__main__":

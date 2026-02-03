@@ -74,8 +74,32 @@ python -m mcp_publish.server
 
 By default it serves over **Streamable HTTP** on **port 8001** (configurable in `mcp_publish/server.py` if needed).
 
-- **URL:** `http://localhost:8001` (or the host/port you set).
+- **URL:** `http://localhost:8001` (or the host/port you set). The MCP endpoint is at **`/mcp`** (e.g. `http://localhost:8001/mcp`).
 - **Transport:** Streamable HTTP (MCP standard). Clients (e.g. LangGraph/backend) call tools via this transport.
+
+---
+
+## Using the standalone server (remote mode)
+
+To have the **main backend** call this server over HTTP instead of in-process:
+
+1. **Start the MCP server** in a separate terminal (from `backend`):
+   ```bash
+   cd backend
+   python -m mcp_publish.server
+   ```
+   Leave it running (e.g. on port 8001).
+
+2. **Configure the backend** to use the standalone server by setting the URL in `backend/.env`:
+   ```env
+   MCP_PUBLISH_URL=http://localhost:8001
+   ```
+   If the server runs on another host/port, set the full base URL (e.g. `http://mcp-host:8001`). The client will use the `/mcp` path automatically when no path is given.
+
+3. **Start the main backend** as usual (e.g. `uvicorn app.main:app --reload`). Publish nodes will call the standalone MCP server over HTTP instead of importing `mcp_publish.server` in-process.
+
+- **In-process (default):** If `MCP_PUBLISH_URL` is not set or empty, the backend uses in-process calls (same as before); you do **not** need to run `python -m mcp_publish.server` separately.
+- **Standalone:** Set `MCP_PUBLISH_URL` and run the MCP server as a separate process when you want to scale or isolate publishing (e.g. different machine, different env).
 
 ---
 
@@ -95,9 +119,11 @@ No separate config file is required; run from `backend` and use the same `.env`.
 ## How the backend / LangGraph use this server
 
 1. **Main backend** (FastAPI) keeps doing OAuth and storing tokens in the DB; it does **not** call platform APIs for publishing.
-2. **LangGraph** publish nodes (e.g. `publish_twitter`, `publish_linkedin`) no longer call Twitter/LinkedIn directly. They call the MCP client, which invokes this server’s tools:
-   - For **upload:** `upload_media(platform, media_base64, user_id, connection_id?)` → get `media_id`.
-   - For **publish:** `publish_post(platform, text, user_id, connection_id?, media_id?, metadata?)` → get `post_id` and `status`.
+2. **LangGraph** publish nodes (e.g. `publish_twitter`, `publish_linkedin`) call **`mcp_publish.client`** only:
+   - **In-process (default):** When `MCP_PUBLISH_URL` is not set, the client imports `mcp_publish.server` and calls the tool functions directly.
+   - **Standalone:** When `MCP_PUBLISH_URL` is set, the client sends JSON-RPC over HTTP to the running MCP server (e.g. `http://localhost:8001/mcp`).
+   - For **upload:** `call_upload_media(...)` → get `media_id`.
+   - For **publish:** `call_publish_post(...)` → get `post_id` and `status`.
 3. **Credentials:** LangGraph and publish nodes do **not** read or store tokens; only the MCP server (and the backend OAuth flow) do. The MCP server resolves `user_id` / `connection_id` and loads tokens from the shared DB.
 
 So: **creation of the MCP server** = this package (`mcp_publish/`) plus running it with `python -m mcp_publish.server`. The README you’re reading is the “clear README for this MCP server creation.”

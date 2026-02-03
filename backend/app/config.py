@@ -1,11 +1,12 @@
 from __future__ import annotations
+import os
 import re
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Get the backend directory (parent of app directory)
-BACKEND_DIR = Path(__file__).parent.parent
+# Get the backend directory (parent of app directory); resolve to absolute so .env is found from any cwd
+BACKEND_DIR = Path(__file__).resolve().parent.parent
 ENV_FILE = BACKEND_DIR / ".env"
 
 
@@ -31,7 +32,7 @@ def _read_env_file(path: Path) -> dict[str, str]:
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=str(ENV_FILE) if ENV_FILE.exists() else ".env",
+        env_file=str(ENV_FILE.resolve()) if ENV_FILE.exists() else ".env",
         env_file_encoding="utf-8",
         extra="ignore"
     )
@@ -61,6 +62,10 @@ class Settings(BaseSettings):
     linkedin_client_secret: str = ""
     linkedin_redirect_uri: str = "http://localhost:8000/v1/oauth/linkedin/callback"
 
+    # When set (e.g. http://localhost:8001), backend uses standalone MCP publish server over HTTP
+    # instead of in-process calls. Leave empty for in-process (default).
+    mcp_publish_url: str = ""
+
 
 _settings = Settings()
 # Override from backend/.env so the file always wins (e.g. Windows env quirks)
@@ -85,5 +90,9 @@ if _get("LINKEDIN_REDIRECT_URI"):
     _settings.linkedin_redirect_uri = _get("LINKEDIN_REDIRECT_URI")
 if _get("TOKENS_FERNET_KEY"):
     _settings.tokens_fernet_key = _get("TOKENS_FERNET_KEY")
+# MCP standalone: from .env file or from process environment (so it works even if .env was changed after startup)
+_mcp_url = (_get("MCP_PUBLISH_URL") or os.environ.get("MCP_PUBLISH_URL") or "").strip()
+if _mcp_url:
+    _settings.mcp_publish_url = _mcp_url
 settings = _settings
 
